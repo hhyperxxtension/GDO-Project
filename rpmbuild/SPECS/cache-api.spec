@@ -64,7 +64,7 @@ systemctl daemon-reload
 %dir %attr(755,flaskapiuser,flaskapiuser) /opt/%{name}
 %dir %attr(755,root,root) /etc/%{name}
 %dir %attr(755,root,root) /var/log/%{name}
-%attr(644,flaskapiuser,flaskapiuser) /opt/%{name}/cache-api.py
+%attr(744,flaskapiuser,flaskapiuser) /opt/%{name}/cache-api.py
 %attr(644,flaskapiuser,flaskapiuser) /etc/%{name}/config-api.yaml
 %attr(644,root,root) /etc/systemd/system/%{name}.service
 /opt/%{name}/lib/python/site-packages/
