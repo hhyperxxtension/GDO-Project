@@ -59,11 +59,13 @@ fi
 systemctl daemon-reload
 
 %files
-%defattr(-,root,root,-)
-/opt/%{name}/
-/etc/%{name}/
-/etc/systemd/system/%{name}.service
-%dir /var/log/%{name}
+%defattr(-,flaskapiuser,flaskapiuser,-)
+%dir %attr(755,flaskapiuser,flaskapiuser) /opt/%{name}
+%dir %attr(755,root,root) /etc/%{name}
+%dir %attr(755,root,root) /var/log/%{name}
+%attr(644,flaskapiuser,flaskapiuser) /opt/%{name}/cache-api.py
+%attr(644,root,root) /etc/systemd/system/%{name}.service
+/opt/%{name}/lib/python/site-packages/
 
 %changelog
 * Fri Oct 17 2025 oleg o.shev.russia@gmail.com - 1.0-1
