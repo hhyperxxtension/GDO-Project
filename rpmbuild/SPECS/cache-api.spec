@@ -24,6 +24,7 @@ install -d %{buildroot}/etc/systemd/system
 
 # Копируем файлы приложения
 cp cache-api.py %{buildroot}/opt/%{name}/
+cp config-api.yaml %{buildroot}/etc/%{name}/
 
 # Устанавливаем зависимости в изолированную site-packages (используем системный pip)
 %{_bindir}/pip3 install --no-cache-dir --target %{buildroot}/opt/%{name}/lib/python/site-packages Flask redis requests PyYAML
@@ -64,6 +65,7 @@ systemctl daemon-reload
 %dir %attr(755,root,root) /etc/%{name}
 %dir %attr(755,root,root) /var/log/%{name}
 %attr(644,flaskapiuser,flaskapiuser) /opt/%{name}/cache-api.py
+%attr(644,flaskapiuser,flaskapiuser) /etc/%{name}/config-api.yaml
 %attr(644,root,root) /etc/systemd/system/%{name}.service
 /opt/%{name}/lib/python/site-packages/
 
