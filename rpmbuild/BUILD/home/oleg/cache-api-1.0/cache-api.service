@@ -1,0 +1,19 @@
+[Unit]
+Description=Flask Api for database with Redis cache
+Documentation=https://github.com/hhyperxxtension/GDO-Project
+After=network.target
+After=redis.service
+
+[Service]
+Type=simple
+User=flaskapiuser
+WorkingDirectory=/opt/cache-api
+Environment=CONFIG_PATH=/etc/cache-api/config-api.yaml
+ExecStart=/usr/bin/python3 /opt/cache-api/cache-api.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

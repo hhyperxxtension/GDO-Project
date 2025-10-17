@@ -2,84 +2,69 @@ Name:           cache-api
 Version:        1.0
 Release:        1%{?dist}
 Summary:        Flask API with Redis cache
-
-License:        GPLv#
+License:        MIT
 URL:            https://github.com/hhyperxxtension/GDO-Project
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires:  noarch
-Requires:       python3
-Requires:       redis
+BuildArch:      x86_64
+Requires:       python3 systemd redis
 
 %description
-Flask-based API app
+Simple Flask API for database with Redis cache, bundled deps.
 
 %prep
-%autosetup
-
-
-%build
-%configure
-%make_build
-
+%setup -q
 
 %install
+# Создаём директории
+install -d %{buildroot}/opt/%{name}
+install -d %{buildroot}/opt/%{name}/lib/python/site-packages
+install -d %{buildroot}/etc/%{name}
+install -d %{buildroot}/etc/systemd/system
 
-VENV_DIR=%{buildroot}%{_prefix}/lib/cache-api/venv
-mkdir -p $VENV_DIR
+# Копируем файлы приложения
+cp cache-api.py %{buildroot}/opt/%{name}/
+
+# Устанавливаем зависимости в изолированную site-packages (используем системный pip)
+%{_bindir}/pip3 install --no-cache-dir --target %{buildroot}/opt/%{name}/lib/python/site-packages Flask redis requests PyYAML
 
 
-# Создаём virtual environment
-python3 -m venv $VENV_DIR
+# Копируем systemd-юнит и правим ExecStart на wrapper
+#sed 's|/usr/bin/python3| /opt/%{name}/run.sh|' cache-api.service > %{buildroot}/etc/systemd/system/%{name}.service
+cp cache-api.service %{buildroot}/etc/systemd/system/%{name}.service
+chmod 644 %{buildroot}/etc/systemd/system/%{name}.service
 
-# Активируем venv и устанавливаем зависимости (используем --no-deps, чтобы избежать подзависимостей)
-$VENV_DIR/bin/pip install --no-deps --upgrade pip
-$VENV_DIR/bin/pip install Flask redis requests PyYAML
+# Создаём директорию для логов (опционально)
+install -d %{buildroot}/var/log/%{name}
 
-# Устанавливаем основной скрипт в venv/bin для удобства (с shebang на venv python)
-install -D -m 755 cache-api.py $VENV_DIR/bin/cache-api.py
-# Делаем скрипт исполняемым и добавляем shebang для venv
-sed -i '1i#!/usr/lib/cache-api/venv/bin/python' $VENV_DIR/bin/cache-api.py
-chmod +x $VENV_DIR/bin/cache-api.py
-
-# Устанавливаем конфиг
-install -D -m 644 config-api.yaml %{buildroot}%{_sysconfdir}/cache-api/config-api.yaml
-
-# Устанавливаем systemd-юнит (обновлённый, см. ниже)
-install -D -m 644 cache-api.service %{buildroot}%{_unitdir}/cache-api.service
-
-# Создаём симлинк для удобства запуска ( /opt/cache-api/cache-api -> venv/bin/cache-api)
-mkdir -p %{buildroot}%{_opt}/cache-api
-ln -s /usr/lib/cache-api/venv/bin/cache-api.py %{buildroot}%{_opt}/cache-api/cache-api.py
+%pre
+# Создаём пользователя перед установкой
+getent group flaskapiuser >/dev/null || groupadd -r flaskapiuser
+getent passwd flaskapiuser >/dev/null || useradd -r -g flaskapiuser -s /sbin/nologin -d /opt/cache-api flaskapiuser
 
 %post
-# После установки: перезагрузка systemd и включение сервиса
+# Перезагружаем systemd после установки
 systemctl daemon-reload
-systemctl enable cache-api.service
-# Опционально: старт сервиса
-# systemctl start cache-api.service
+systemctl enable %{name}.service
+
+%preun
+if [ $1 -eq 0 ]; then  # Полное удаление
+    systemctl stop %{name}.service
+    systemctl disable %{name}.service
+    userdel flaskapiuser
+    groupdel flaskapiuser
+fi
 
 %postun
-# После удаления: отключение и остановка сервиса
-if [ $1 -eq 0 ]; then
-    systemctl disable cache-api.service || true
-    systemctl stop cache-api.service || true
-fi
 systemctl daemon-reload
 
 %files
-# Включаем весь venv (это основной размер пакета)
-%{_prefix}/lib/cache-api/venv/
-
-# Симлинк в /usr/bin
-%{_bindir}/cache-api
-
-# Конфиг (не перезаписывать при обновлении)
-%config(noreplace) %{_sysconfdir}/cache-api/config-api.yaml
-
-# Systemd-юнит
-%{_unitdir}/cache-api.service
+%defattr(-,root,root,-)
+/opt/%{name}/
+/etc/%{name}/
+/etc/systemd/system/%{name}.service
+%dir /var/log/%{name}
 
 %changelog
-* Thu Oct 16 2025 oleg
-- 
+* Fri Oct 17 2025 oleg o.shev.russia@gmail.com - 1.0-1
+- Initial package
