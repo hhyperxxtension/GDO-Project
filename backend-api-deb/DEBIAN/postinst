@@ -1,0 +1,16 @@
+#!/bin/bash
+# Создаем пользователя, если его нет
+if ! id "backendapiuser" &>/dev/null; then
+    useradd -r -s /bin/false -d /opt/backend-api backendapiuser
+fi
+
+# Устанавливаем права
+chown -R backendapiuser:backendapiuser /opt/backend-api
+chmod +x /opt/backend-api/backend
+
+# Перезагружаем systemd и включаем сервис
+systemctl daemon-reload
+systemctl enable backend-api.service
+systemctl start backend-api.service
+
+exit 0

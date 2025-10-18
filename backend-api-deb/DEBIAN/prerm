@@ -1,0 +1,4 @@
+#!/bin/bash
+systemctl stop backend-api.service
+systemctl disable backend-api.service
+exit 0

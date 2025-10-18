@@ -1,0 +1,12 @@
+Package: backend-api
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: golang-go, systemd
+Maintainer: Oleg o.shev.russia@gmail.com
+Description: Golang Backend API for PostgreSQL
+ This package provides a simple HTTP API server that connects to PostgreSQL
+ and serves user data via /user endpoint.
+ .
+ It includes systemd service for management and YAML config.
