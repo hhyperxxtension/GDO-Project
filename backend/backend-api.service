@@ -1,5 +1,5 @@
 [Unit]
-Descripton=Golang API for PostgreSQL
+Description=Golang API for PostgreSQL
 After=network.target
 
 [Service]
@@ -9,7 +9,7 @@ Restart=always
 RestartSec=10s
 WorkingDirectory=/opt/backend-api
 User=backendapiuser
-Environmet=CONFIG_PATH=/etc/backend-api/config.yaml
+Environment=CONFIG_PATH=/etc/backend-api/config.yaml
 StandardOutput=journal
 
 [Install]
