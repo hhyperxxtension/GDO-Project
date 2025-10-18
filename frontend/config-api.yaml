@@ -7,4 +7,4 @@ backend:
   port: 8080
 
 app:
-  port: 5020
+  port: 5000

@@ -1,7 +1,7 @@
 database:
-host: "127.0.0.1"
-port: "5432"
-user: "backend-go"
-password: "TxuA4ZTPD2"
-dbname: "test"
-sslmode: "disable"
+  host: "127.0.0.1"
+  port: "5432"
+  user: "backendgo"
+  password: "TxuA4ZTPD2"
+  dbname: "test"
+  sslmode: "disable"
