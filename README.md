@@ -16,15 +16,11 @@ curl 51.250.18.217:5000/user?id=3
 
 ## Структура проекта
 
-├── backend             Исходные файлы backend
-
-├── backend-api-deb     Сборка backend в deb пакет
-
-├── frontend            Исходные файлы frontend
-
-└── rpmbuild            Сборка frontend в rpm пакет
-
-└──iptables.sh          Файл настройки правил фаерволла для backend и frontend
+├── **backend**             Исходные файлы backend
+├── **backend-api-deb**     Сборка backend в deb пакет
+├── **frontend**            Исходные файлы frontend
+└── **rpmbuild**            Сборка frontend в rpm пакет
+└──**iptables.sh**          Файл настройки правил фаерволла для backend и frontend
   
 
 ## Архитектура
