@@ -64,9 +64,7 @@ curl 51.250.18.217:5000/user?id=3
 1. Debian-пакет:
 
    ```bash
-
    dpkg -i backend-api-deb/backend-api.deb
-
    ```
 
 2. Конфигурация:
@@ -80,9 +78,7 @@ curl 51.250.18.217:5000/user?id=3
 1. RPM-пакет:
 
    ```bash
-
    rpm -i rpmbuild/RPMS/x86_64/cache-api-1.0-1.el9.x86_64.rpm
-
    ```
 
 2. Конфигурация:
