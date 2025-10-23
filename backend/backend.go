@@ -3,6 +3,7 @@ package main
 import (
 "database/sql"
 "encoding/json"
+"errors"
 "fmt"
 _ "github.com/lib/pq"
 "gopkg.in/yaml.v3"
@@ -11,98 +12,161 @@ _ "github.com/lib/pq"
 "os"
 )
 
+// User представляет структуру пользователя
+type User struct {
+ID   int    `json:"id"`
+Name string `json:"name"`
+Age  int    `json:"age"`
+}
+
+// Config представляет конфигурацию приложения
 type Config struct {
 Database struct {
-Host string `yaml:"host"`
-Port string `yaml:"port"`
-User string `yaml:"user"`
+Host     string `yaml:"host"`
+Port     string `yaml:"port"`
+User     string `yaml:"user"`
 Password string `yaml:"password"`
-Name string `yaml:"dbname"`
-SSLMode string `yaml:"sslmode"`
+Name     string `yaml:"dbname"`
+SSLMode  string `yaml:"sslmode"`
 } `yaml:"database"`
 }
 
+// App представляет основное приложение
+type App struct {
+DB *sql.DB
+}
+
+// loadConfig загружает конфигурацию из файла
 func loadConfig(path string) (*Config, error) {
-file, err := os.ReadFile(path)
+if path == "" {
+return nil, errors.New("config path is empty")
+}
+
+data, err := os.ReadFile(path)
 if err != nil {
-return &Config{}, err
+return nil, fmt.Errorf("failed to read config file: %w", err)
 }
+
 var cfg Config
-if err := yaml.Unmarshal(file, &cfg); err != nil {
-return &Config{}, err
+if err := yaml.Unmarshal(data, &cfg); err != nil {
+return nil, fmt.Errorf("failed to parse config: %w", err)
 }
+
 return &cfg, nil
 }
 
-func main() {
-// Читаем конфиг-файл
-configPath := os.Getenv("CONFIG_PATH")
-if configPath == "" {
-configPath = "/etc/backend-api/config.yaml"
+// getConfigPath возвращает путь к конфигурационному файлу
+func getConfigPath() string {
+path := os.Getenv("CONFIG_PATH")
+if path == "" {
+path = "/etc/backend-api/config.yaml"
 }
-cfg, _ := loadConfig(configPath)
+return path
+}
 
+// buildDSN строит строку подключения к PostgreSQL
+func buildDSN(cfg *Config) string {
 // Читаем из окружения, если есть
-dbHost := os.Getenv("DB_HOST")
-if dbHost == "" {
-dbHost = cfg.Database.Host
-}
-dbPort := os.Getenv("DB_PORT")
-if dbPort == "" {
-dbPort = cfg.Database.Port
-}
-dbUser := os.Getenv("DB_USER")
-if dbUser == "" {
-dbUser = cfg.Database.User
-}
-dbPassword := os.Getenv("DB_PASSWORD")
-if dbPassword == "" {
-dbPassword = cfg.Database.Password
-}
-dbName := os.Getenv("DB_NAME")
-if dbName == "" {
-dbName = cfg.Database.Name
-}
-sslMode := os.Getenv("DB_SSLMODE")
-if sslMode == "" {
-sslMode = cfg.Database.SSLMode
-}
+dbHost := getEnv("DB_HOST", cfg.Database.Host)
+dbPort := getEnv("DB_PORT", cfg.Database.Port)
+dbUser := getEnv("DB_USER", cfg.Database.User)
+dbPassword := getEnv("DB_PASSWORD", cfg.Database.Password)
+dbName := getEnv("DB_NAME", cfg.Database.Name)
+sslMode := getEnv("DB_SSLMODE", cfg.Database.SSLMode)
+
 if sslMode == "" {
 sslMode = "disable"
 }
 
-// DSN для PostgreSQL
-dsn := fmt.Sprintf(
-"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-dbHost, dbPort, dbUser, dbPassword, dbName, sslMode,
-)
+return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+dbHost, dbPort, dbUser, dbPassword, dbName, sslMode)
+}
 
+// getEnv возвращает значение переменной окружения или значение по умолчанию
+func getEnv(key, defaultValue string) string {
+value := os.Getenv(key)
+if value == "" {
+return defaultValue
+}
+return value
+}
+
+// connectDB устанавливает соединение с базой данных
+func connectDB(dsn string) (*sql.DB, error) {
 db, err := sql.Open("postgres", dsn)
 if err != nil {
-log.Fatalf("Ошибка подключения к БД: %v", err)
+return nil, fmt.Errorf("failed to connect to database: %w", err)
+}
+
+if err := db.Ping(); err != nil {
+db.Close()
+return nil, fmt.Errorf("database is not available: %w", err)
+}
+
+return db, nil
+}
+
+// getUserHandler обработчик запроса пользователя
+func (app *App) getUserHandler(w http.ResponseWriter, r *http.Request) {
+id := r.URL.Query().Get("id")
+if id == "" {
+http.Error(w, "id parameter is required", http.StatusBadRequest)
+return
+}
+
+row := app.DB.QueryRow("SELECT id, name, age FROM users WHERE id = $1", id)
+var user User
+err := row.Scan(&user.ID, &user.Name, &user.Age)
+
+if err != nil {
+if errors.Is(err, sql.ErrNoRows) {
+http.Error(w, "user not found", http.StatusNotFound)
+} else {
+log.Printf("error scanning user row: %v", err)
+http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+return
+}
+
+w.Header().Set("Content-Type", "application/json")
+json.NewEncoder(w).Encode(user)
+}
+
+// startHTTPServer запускает HTTP сервер
+func (app *App) startHTTPServer() error {
+log.Println("Starting HTTP server on :8080")
+return http.ListenAndServe(":8080", nil)
+}
+
+// runApp запускает приложение
+func runApp() error {
+configPath := getConfigPath()
+log.Printf("Loading config from: %s", configPath)
+
+cfg, err := loadConfig(configPath)
+if err != nil {
+return fmt.Errorf("failed to load config: %w", err)
+}
+
+dsn := buildDSN(cfg)
+log.Printf("Connecting to database: %s", dsn)
+
+db, err := connectDB(dsn)
+if err != nil {
+return fmt.Errorf("failed to connect to database: %w", err)
 }
 defer db.Close()
 
-if err := db.Ping(); err != nil {
-log.Fatalf("БД недоступна: %v", err)
+app := &App{DB: db}
+
+http.HandleFunc("/user", app.getUserHandler)
+
+	return app.startHTTPServer()
 }
 
-log.Println("Backend API запущен на :8080")
-
-http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
-id := r.URL.Query().Get("id")
-row := db.QueryRow("SELECT id, name, age FROM users WHERE id = $1", id)
-var u struct {
-ID int `json:"id"`
-Name string `json:"name"`
-Age int `json:"age"`
+func main() {
+if err := runApp(); err != nil {
+log.Fatalf("Application failed: %v", err)
 }
-if err := row.Scan(&u.ID, &u.Name, &u.Age); err != nil {
-http.Error(w, "not found", http.StatusNotFound)
-return
 }
-json.NewEncoder(w).Encode(u)
-})
-
-log.Fatal(http.ListenAndServe(":8080", nil))
-}
+>>>>>>> REPLACE
