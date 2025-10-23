@@ -41,21 +41,33 @@ curl 51.250.18.217:5000/user?id=3
 ## Описание проекта
 
 Проект представляет собой распределенную систему, состоящую из трех основных компонентов:
+
 - Backend API (Go) - сервис для работы с базой данных PostgreSQL
+
 - Frontend API (Python) - сервис кэширования с использованием Redis
+
 - Конфигурация системы через YAML файлы
+
 
 ### Компоненты системы
 
 1. **Backend API** (Go):
+
    - REST API для работы с базой данных PostgreSQL
+
    - Конфигурируемое подключение к БД
+
    - Endpoint `/user` для получения информации о пользователе
 
+
 2. **Frontend API** (Python/Flask):
+
    - Кэширующий слой с использованием Redis
+
    - Проксирование запросов к Backend API
+
    - Автоматическое кэширование ответов
+
    - TTL кэша: 60 секунд
 
 ## Установка
@@ -68,7 +80,9 @@ dpkg -i backend-api-deb/backend-api.deb
 ```
 
 2. Конфигурация:
+
    - Основной конфиг: `/etc/backend-api/config.yaml`
+
    - Systemd сервис: `/etc/systemd/system/backend-api.service`
 
   
@@ -82,7 +96,9 @@ dpkg -i backend-api-deb/backend-api.deb
 ```
 
 2. Конфигурация:
+
    - Основной конфиг: `/etc/cache-api/config-api.yaml`
+
    - Systemd сервис: `/etc/systemd/system/cache-api.service`
 
   
